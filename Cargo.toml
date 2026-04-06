@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/pheno-vcs-core"]
+members = ["crates/worktree-manager"]
 resolver = "2"
 
 [workspace.package]

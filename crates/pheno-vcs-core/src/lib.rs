@@ -1,0 +1,1 @@
+// Stub VCS core

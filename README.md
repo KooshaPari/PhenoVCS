@@ -1,5 +1,10 @@
 # PhenoVCS
 
+[![Build](https://img.shields.io/github/actions/workflow/status/KooshaPari/PhenoVCS/ci.yml?branch=main&label=build)](https://github.com/KooshaPari/PhenoVCS/actions)
+[![Release](https://img.shields.io/github/v/release/KooshaPari/PhenoVCS?include_prereleases&sort=semver)](https://github.com/KooshaPari/PhenoVCS/releases)
+[![License](https://img.shields.io/github/license/KooshaPari/PhenoVCS)](LICENSE)
+[![Phenotype](https://img.shields.io/badge/Phenotype-org-blueviolet)](https://github.com/KooshaPari)
+
 Version control primitives registry for the Phenotype ecosystem — git worktree management, VCS abstractions, and the concurrency-safe primitives Phenotype agents rely on when they check out, branch, commit, and integrate code.
 
 **Part of the [Phenotype org](https://github.com/KooshaPari) ecosystem.** Shares CI reusables and conventions with [phenoShared](https://github.com/KooshaPari/phenoShared). Follows org conventions: conventional commits, `<type>/<topic>` branching, Apache-2.0 + MIT dual license.

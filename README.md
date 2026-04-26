@@ -1,5 +1,9 @@
 # PhenoVCS
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/KooshaPari/PhenoVCS/actions/workflows/ci.yml/badge.svg)](https://github.com/KooshaPari/PhenoVCS/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+
 Pure Rust, async-first Version Control System (VCS) primitives library for the Phenotype ecosystem. Provides high-performance Git operations with zero C dependencies, designed for CI/CD pipelines, automated repository management, and seamless integration with the broader Phenotype toolchain.
 
 ## Overview

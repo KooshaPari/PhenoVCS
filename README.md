@@ -78,3 +78,7 @@ PhenoVCS/
 - **[AgilePlus](../AgilePlus)** — Uses PhenoVCS for Git-backed workspace management
 - **[PhenoDevOps](../PhenoDevOps)** — Integrates VCS operations in CI/CD pipelines
 - **[thegent](../thegent)** — Git integration for dotfiles and workspace automation
+
+## License
+
+MIT — see [LICENSE](./LICENSE).

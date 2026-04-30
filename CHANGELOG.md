@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## 📚 Documentation
 - Docs(fr): scaffold FUNCTIONAL_REQUIREMENTS.md
 

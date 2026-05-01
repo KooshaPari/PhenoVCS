@@ -1,0 +1,17 @@
+name: Journey Gate
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  journey-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for manifest files
+        run: |
+          MANIFESTS=$(find . -name 'manifest.verified.json' 2>/dev/null | wc -l)
+          echo "Found $MANIFESTS manifest files"

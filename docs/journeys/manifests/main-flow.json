@@ -1,0 +1,9 @@
+{
+  "id": "phenovcs-main",
+  "intent": "Demonstrate primary user interaction: PhenoVCS: version control",
+  "recording": null,
+  "recording_gif": null,
+  "keyframe_count": 0,
+  "passed": false,
+  "steps": []
+}

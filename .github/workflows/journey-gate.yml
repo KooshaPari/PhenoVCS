@@ -10,7 +10,7 @@ jobs:
   journey-validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Check for manifest files
         run: |
           MANIFESTS=$(find . -name 'manifest.verified.json' 2>/dev/null | wc -l)

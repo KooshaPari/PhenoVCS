@@ -18,6 +18,7 @@
 [![Release](https://img.shields.io/github/v/release/KooshaPari/PhenoVCS?include_prereleases&sort=semver)](https://github.com/KooshaPari/PhenoVCS/releases)
 [![License](https://img.shields.io/github/license/KooshaPari/PhenoVCS)](LICENSE)
 [![Phenotype](https://img.shields.io/badge/Phenotype-org-blueviolet)](https://github.com/KooshaPari)
+[![AI Slop Inside](https://sladge.net/badge.svg)](https://sladge.net)
 
 Version control primitives registry for the Phenotype ecosystem — git worktree management, VCS abstractions, and the concurrency-safe primitives Phenotype agents rely on when they check out, branch, commit, and integrate code.
 

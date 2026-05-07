@@ -39,14 +39,4 @@ coverage/
 # Misc
 *.tmp
 *.bak
-*.origCargo.lock
-Cargo.lock
-
-# ===== Standard auto-generated hygiene ignores (do not edit manually) =====
-.env.*
-!.env.example
-.pytest_cache/
-__pycache__/
-.mypy_cache/
-.ruff_cache/
-# ===== End standard hygiene ignores =====
+*.orig

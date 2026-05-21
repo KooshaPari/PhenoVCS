@@ -2,6 +2,7 @@ name: CI
 
 on:
 
+timeout-minutes: 45
   push:
     branches: [main]
   pull_request:
@@ -11,14 +12,9 @@ on:
 permissions:
   contents: read
 
-
-timeout-minutes: 45
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-
 
 jobs:
   ci:

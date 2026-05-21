@@ -5,6 +5,7 @@ concurrency:
 
 on:
 
+timeout-minutes: 10
   branch_protection_rule:
   schedule:
     - cron: '17 3 * * 6'
@@ -13,18 +14,10 @@ on:
 
 permissions: read-all
 
-
-
-permissions:
-  contents: read
-  actions: read
-
-timeout-minutes: 10
-
 jobs:
   analysis:
     name: Scorecard analysis
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       security-events: write
       id-token: write
@@ -48,6 +41,6 @@ jobs:
           path: results.sarif
           retention-days: 5
 
-      - uses: github/codeql-action/upload-sarif@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif

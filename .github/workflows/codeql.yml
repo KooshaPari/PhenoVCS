@@ -23,7 +23,7 @@ permissions:
 jobs:
   analyze:
     name: Analyze Rust
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
@@ -31,17 +31,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@411bbbe57033eedfc1a82d68c01345aa96c737d7
+        uses: github/codeql-action/init@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
         with:
           languages: rust
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@411bbbe57033eedfc1a82d68c01345aa96c737d7
+        uses: github/codeql-action/autobuild@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@411bbbe57033eedfc1a82d68c01345aa96c737d7
+        uses: github/codeql-action/analyze@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
         with:
           category: "/language:rust"

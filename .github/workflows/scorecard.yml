@@ -5,7 +5,6 @@ concurrency:
 
 on:
 
-timeout-minutes: 10
   branch_protection_rule:
   schedule:
     - cron: '17 3 * * 6'
@@ -14,10 +13,18 @@ timeout-minutes: 10
 
 permissions: read-all
 
+
+
+permissions:
+  contents: read
+  actions: read
+
+timeout-minutes: 10
+
 jobs:
   analysis:
     name: Scorecard analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       security-events: write
       id-token: write

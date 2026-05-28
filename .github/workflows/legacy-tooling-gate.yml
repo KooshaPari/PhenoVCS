@@ -1,6 +1,12 @@
 name: Legacy Tooling Gate (WARN Mode)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 on:
+
+
   push:
     branches: [main, master, develop]
   pull_request:
@@ -10,10 +16,15 @@ on:
 permissions:
   contents: read
 
+
+
+
+timeout-minutes: 20
+
 jobs:
   legacy-tooling-scan:
     name: Legacy Tooling Anti-Pattern Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write

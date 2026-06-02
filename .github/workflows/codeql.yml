@@ -1,12 +1,6 @@
 name: CodeQL
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 
 on:
-
-
   push:
     branches: ["main"]
   pull_request:
@@ -19,15 +13,10 @@ permissions:
   contents: read
   security-events: write
 
-
-
-
-timeout-minutes: 20
-
 jobs:
   analyze:
     name: Analyze Rust
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
@@ -35,17 +24,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        uses: actions/checkout@v
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
+        uses: github/codeql-action/init@v4
         with:
           languages: rust
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@dc73d59c2d7bd4f8194098a91219eeee6d8a1719
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:rust"

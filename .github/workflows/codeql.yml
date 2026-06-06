@@ -27,14 +27,14 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@411bbbe57033eedfc1a82d68c01345aa96c737d7
+        uses: github/codeql-action/init@dd903d2e4f5405488e5ef1422510ee31c8b32357
         with:
           languages: rust
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@411bbbe57033eedfc1a82d68c01345aa96c737d7
+        uses: github/codeql-action/autobuild@dd903d2e4f5405488e5ef1422510ee31c8b32357
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@411bbbe57033eedfc1a82d68c01345aa96c737d7
+        uses: github/codeql-action/analyze@dd903d2e4f5405488e5ef1422510ee31c8b32357
         with:
           category: "/language:rust"

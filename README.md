@@ -1,3 +1,14 @@
+## Work State
+
+| Field | Value |
+|---|---|
+| Last commit | 2026-06-06 |
+| Open issues | 0 |
+| Open PRs | 2 |
+| Focus | SHA-pin GitHub Actions across workflows |
+
+Progress: ████████░░ 80%
+
 > **Pinned references (Phenotype-org)**
 > - MSRV: see rust-toolchain.toml
 > - cargo-deny config: see deny.toml

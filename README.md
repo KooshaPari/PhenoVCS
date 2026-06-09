@@ -2,12 +2,12 @@
 
 | Field | Value |
 |---|---|
-| Last commit | 2026-06-06 |
+| Last commit | 2026-06-08 |
 | Open issues | 0 |
-| Open PRs | 2 |
-| Focus | SHA-pin GitHub Actions across workflows |
+| Open PRs | 4 |
+| Focus | Hygiene bundle (audit confirms all baselines already met) |
 
-Progress: ████████░░ 80%
+Progress: █████████░ 90%
 
 > **Pinned references (Phenotype-org)**
 > - MSRV: see rust-toolchain.toml

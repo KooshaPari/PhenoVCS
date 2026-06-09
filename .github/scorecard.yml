@@ -1,0 +1,8 @@
+---
+# OpenSSF Scorecard configuration
+# Docs: https://github.com/ossf/scorecard/blob/main/docs/config.md
+checks:
+  experimental: true
+
+# Run weekly on the default branch
+schedule: weekly

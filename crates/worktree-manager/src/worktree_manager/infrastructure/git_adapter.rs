@@ -30,6 +30,18 @@ impl GitWorktreeAdapter {
             Err(WorktreeError::GitError(format!("git failed: {}", stderr)))
         }
     }
+
+    /// Route a parsed worktree into the main slot or the worktrees list.
+    ///
+    /// Extracted from `WorktreeRepository::list` to remove the duplicated
+    /// "main vs linked" dispatch that previously appeared twice in the parser.
+    fn push_record(wt: Worktree, main: &mut Option<Worktree>, worktrees: &mut Vec<Worktree>) {
+        if wt.is_main {
+            *main = Some(wt);
+        } else {
+            worktrees.push(wt);
+        }
+    }
 }
 
 impl Default for GitWorktreeAdapter {
@@ -49,13 +61,9 @@ impl WorktreeRepository for GitWorktreeAdapter {
         for line in output.lines() {
             if line.starts_with("worktree ") {
                 if let Some(wt) = current.take() {
-                    if wt.is_main {
-                        main = Some(wt);
-                    } else {
-                        worktrees.push(wt);
-                    }
+                    Self::push_record(wt, &mut main, &mut worktrees);
                 }
-                
+
                 let path = line.trim_start_matches("worktree ");
                 let is_main = path.contains("/.git/worktrees") || path == repo_path.to_str().unwrap_or("");
                 current = Some(Worktree {
@@ -79,13 +87,9 @@ impl WorktreeRepository for GitWorktreeAdapter {
                 }
             }
         }
-        
+
         if let Some(wt) = current {
-            if wt.is_main {
-                main = Some(wt);
-            } else {
-                worktrees.push(wt);
-            }
+            Self::push_record(wt, &mut main, &mut worktrees);
         }
         
         let main = main.unwrap_or_else(|| Worktree::main(repo_path.to_path_buf(), String::new()));

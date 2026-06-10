@@ -192,3 +192,58 @@ impl BranchOperations for GitWorktreeAdapter {
         Ok(BranchName::new(output.trim()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::BranchName;
+    use std::path::Path;
+    use std::process::Command;
+    use tempfile::TempDir;
+
+    /// Initialise a fresh git repo in `dir` with one commit so that
+    /// `git worktree add` has a valid HEAD to branch from.
+    fn init_repo_with_commit(dir: &Path) {
+        let run = |args: &[&str]| {
+            Command::new("git")
+                .arg("-C")
+                .arg(dir)
+                .args(args)
+                .output()
+                .unwrap_or_else(|e| panic!("git {:?} failed to spawn: {}", args, e))
+        };
+        assert!(run(&["init", "-q", "--initial-branch=main"]).status.success(),
+            "git init failed");
+        let _ = run(&["config", "user.email", "test@example.com"]);
+        let _ = run(&["config", "user.name", "Test User"]);
+        std::fs::write(dir.join("README.md"), b"init\n").expect("write README");
+        assert!(run(&["add", "."]).status.success(), "git add failed");
+        assert!(run(&["commit", "-q", "-m", "init"]).status.success(),
+            "git commit failed");
+    }
+
+    #[test]
+    fn create_writes_worktree_directory_to_disk() {
+        let tmp = TempDir::new().expect("tempdir");
+        let repo = tmp.path();
+        init_repo_with_commit(repo);
+
+        let adapter = GitWorktreeAdapter::new();
+        let worktree_path = repo.join("wt-feature");
+        let branch = BranchName::new("feature/test-create");
+
+        let result = WorktreeRepository::create(&adapter, repo, &branch, &worktree_path);
+        assert!(result.is_ok(), "create returned error: {:?}", result.err());
+
+        let worktree = result.unwrap();
+        assert!(
+            worktree_path.exists(),
+            "expected worktree directory to be created at {:?}",
+            worktree_path
+        );
+        assert!(worktree_path.is_dir(), "worktree path should be a directory");
+        assert_eq!(worktree.branch, branch);
+        assert_eq!(worktree.path, worktree_path);
+        assert!(!worktree.is_main, "new worktree must not be flagged as main");
+    }
+}

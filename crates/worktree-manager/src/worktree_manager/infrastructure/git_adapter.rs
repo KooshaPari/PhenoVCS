@@ -67,6 +67,7 @@ impl WorktreeRepository for GitWorktreeAdapter {
                     is_main,
                     locked: false,
                     lock_reason: None,
+                    git_credentials: None,
                 });
             } else if let Some(ref mut wt) = current {
                 if line.starts_with("branch ") {

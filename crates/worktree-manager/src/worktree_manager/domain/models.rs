@@ -6,6 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use chrono::{DateTime, Utc};
+use phenotype_secret::Secret;
 
 /// Represents a git worktree
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +27,23 @@ pub struct Worktree {
     pub locked: bool,
     /// Lock reason (if locked)
     pub lock_reason: Option<String>,
+    /// Optional HTTPS git credentials (e.g. personal access token).
+    ///
+    /// Wrapped in [`phenotype_secret::Secret`] so accidental `format!`,
+    /// `tracing::info!`, or `serde_json::to_string` calls cannot leak
+    /// the value into logs, panic messages, or network payloads. The
+    /// only way to read the inner value is the explicit
+    /// [`phenotype_secret::Secret::expose`] accessor.
+    ///
+    /// `#[serde(skip, default)]` is required because
+    /// `phenotype_secret::Secret` intentionally only implements
+    /// `Serialize` (with a redacted payload) — there is no
+    /// `Deserialize` impl, by design, to keep the audit surface
+    /// explicit. Callers that need to round-trip a secret should use
+    /// [`phenotype_secret::Secret::expose`] and re-wrap with
+    /// [`phenotype_secret::Secret::from`].
+    #[serde(skip, default)]
+    pub git_credentials: Option<Secret<String>>,
 }
 
 impl Worktree {
@@ -39,6 +57,7 @@ impl Worktree {
             is_main: false,
             locked: false,
             lock_reason: None,
+            git_credentials: None,
         }
     }
 
@@ -52,6 +71,7 @@ impl Worktree {
             is_main: true,
             locked: false,
             lock_reason: None,
+            git_credentials: None,
         }
     }
 

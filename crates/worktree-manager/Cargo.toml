@@ -34,6 +34,11 @@ clap = { version = "4.0", features = ["derive"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+# Shared secret redaction wrapper (HTTPS git auth credentials)
+# Path is relative to this manifest; 4 `..` to escape this worktree's
+# nested location under PhenoVCS-wtrees/.
+phenotype-secret = { path = "../../../../phenoShared/crates/phenotype-secret" }
+
 [dev-dependencies]
 tempfile = "3.0"
 assert_cmd = "2.0"

@@ -11,6 +11,9 @@ use worktree_manager::{
 };
 
 fn main() -> anyhow::Result<()> {
+    // Announce version on startup
+    println!("wtm {}", phenotype_build_info::pkg_version());
+
     // Initialize tracing
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::try_from_default_env()

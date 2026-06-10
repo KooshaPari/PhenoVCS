@@ -219,4 +219,73 @@ mod tests {
         assert!(!failure.success);
         assert_eq!(failure.error, Some("test error".to_string()));
     }
+
+    /// The `git_credentials` field is wrapped in
+    /// `phenotype_secret::Secret<String>` precisely so that the
+    /// "innocent" leak paths (`format!`, `tracing::info!`,
+    /// `serde_json::to_string`) can never emit the inner value.
+    /// This test pins all three invariants at the Worktree level so
+    /// a future refactor that drops the wrapper — or that swaps it
+    /// for a `String` — fails CI rather than silently regressing
+    /// the audit surface.
+    #[test]
+    fn test_worktree_git_credentials_are_redacted() {
+        // A recognisable, never-real token string. If this leaks
+        // into *any* of the formatted / serialised outputs below,
+        // the redaction guarantee is broken.
+        const LEAK: &str = "sk-live-supersecret-do-not-leak";
+
+        let mut wt = Worktree::new(
+            BranchName::new("feature/redaction-check"),
+            PathBuf::from("/tmp/redaction"),
+            "deadbeef".to_string(),
+        );
+        wt.git_credentials = Some(Secret::from(LEAK.to_string()));
+
+        // --- Debug: the derived `Worktree` Debug delegates to
+        //     `Secret`'s hand-rolled `Debug`, which writes
+        //     `Secret("redacted")` — never the inner value.
+        let dbg = format!("{wt:?}");
+        assert!(
+            !dbg.contains(LEAK),
+            "Worktree::Debug leaked git_credentials inner value: {dbg}"
+        );
+        assert!(
+            dbg.contains("Secret(\"redacted\")"),
+            "Worktree::Debug should render the redaction placeholder, got: {dbg}"
+        );
+
+        // --- Display: `format!("{}", secret)` is the most common
+        //     leak path (`println!("token = {token}")`,
+        //     `panic!("got {secret}")`). Reach into the field and
+        //     exercise the `Display` impl directly so a refactor
+        //     that swaps `Secret` for a raw `String` fails this
+        //     assertion.
+        let creds = wt
+            .git_credentials
+            .as_ref()
+            .expect("git_credentials must be Some for this test");
+        assert_eq!(format!("{creds}"), "[REDACTED]");
+
+        // --- Serialize: a struct-level `serde_json::to_string`
+        //     must emit `"git_credentials":null` (the field is
+        //     `#[serde(skip)]`) — and certainly must not contain
+        //     the token anywhere else in the payload.
+        let json = serde_json::to_string(&wt).expect("Worktree must serialize");
+        assert!(
+            !json.contains(LEAK),
+            "Worktree::Serialize leaked git_credentials inner value: {json}"
+        );
+        assert!(
+            !json.contains("git_credentials"),
+            "git_credentials is #[serde(skip)] and must not appear in JSON, got: {json}"
+        );
+
+        // --- Escape hatch sanity check: the redaction wrapper is
+        //     not a black hole; `Secret::expose` is the one named,
+        //     auditable accessor. Lock its presence down so a
+        //     future change that drops the accessor (and thus
+        //     forces callers to reach for `&secret.0`) is caught.
+        assert_eq!(creds.expose(), LEAK);
+    }
 }

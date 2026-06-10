@@ -1,0 +1,6 @@
+# OpenSSF Scorecard configuration
+# Automated security scoring for the repository
+# See: https://github.com/ossf/scorecard
+version: 2.1.0
+exported-results-location: ./scorecard-results
+publish-results-location: ./scorecard-results

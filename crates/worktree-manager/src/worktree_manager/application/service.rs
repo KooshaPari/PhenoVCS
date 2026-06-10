@@ -57,7 +57,10 @@ where
         }
 
         // Create worktree
-        match self.repository.create(repo_path, &branch_name, worktree_path) {
+        match self
+            .repository
+            .create(repo_path, &branch_name, worktree_path)
+        {
             Ok(worktree) => WorktreeResult::success(worktree),
             Err(e) => WorktreeResult::failure(e.to_string()),
         }

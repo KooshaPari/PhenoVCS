@@ -5,8 +5,8 @@
 //! - Depends on external libraries (git2, std)
 //! - Pluggable and replaceable
 
-pub mod git_adapter;
 pub mod filesystem_adapter;
+pub mod git_adapter;
 
-pub use git_adapter::GitWorktreeAdapter;
 pub use filesystem_adapter::SimpleFilesystemAdapter;
+pub use git_adapter::GitWorktreeAdapter;

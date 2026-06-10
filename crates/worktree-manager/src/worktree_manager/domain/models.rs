@@ -3,9 +3,9 @@
 //! These are pure domain concepts with zero external dependencies.
 //! Following Hexagonal Architecture: Domain Layer.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use chrono::{DateTime, Utc};
 
 /// Represents a git worktree
 #[derive(Debug, Clone, Serialize, Deserialize)]

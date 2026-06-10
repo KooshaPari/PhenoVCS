@@ -11,6 +11,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 name = "worktree_manager"
 path = "src/worktree_manager/mod.rs"

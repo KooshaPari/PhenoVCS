@@ -2,7 +2,9 @@
 //!
 //! Following Hexagonal Architecture: Infrastructure (Driven Adapter).
 
-use crate::domain::{BranchName, WorktreeError, DomainResult, Worktree, WorktreeId, WorktreeListing};
+use crate::domain::{
+    BranchName, DomainResult, Worktree, WorktreeError, WorktreeId, WorktreeListing,
+};
 use crate::ports::{BranchOperations, WorktreeRepository};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -41,11 +43,11 @@ impl Default for GitWorktreeAdapter {
 impl WorktreeRepository for GitWorktreeAdapter {
     fn list(&self, repo_path: &Path) -> DomainResult<WorktreeListing> {
         let output = self.run_git(repo_path, &["worktree", "list", "--porcelain"])?;
-        
+
         let mut worktrees: Vec<Worktree> = Vec::new();
         let mut main: Option<Worktree> = None;
         let mut current: Option<Worktree> = None;
-        
+
         for line in output.lines() {
             if line.starts_with("worktree ") {
                 if let Some(wt) = current.take() {
@@ -55,9 +57,10 @@ impl WorktreeRepository for GitWorktreeAdapter {
                         worktrees.push(wt);
                     }
                 }
-                
+
                 let path = line.trim_start_matches("worktree ");
-                let is_main = path.contains("/.git/worktrees") || path == repo_path.to_str().unwrap_or("");
+                let is_main =
+                    path.contains("/.git/worktrees") || path == repo_path.to_str().unwrap_or("");
                 current = Some(Worktree {
                     id: WorktreeId(PathBuf::from(path)),
                     branch: BranchName::default(),
@@ -79,7 +82,7 @@ impl WorktreeRepository for GitWorktreeAdapter {
                 }
             }
         }
-        
+
         if let Some(wt) = current {
             if wt.is_main {
                 main = Some(wt);
@@ -87,10 +90,10 @@ impl WorktreeRepository for GitWorktreeAdapter {
                 worktrees.push(wt);
             }
         }
-        
+
         let main = main.unwrap_or_else(|| Worktree::main(repo_path.to_path_buf(), String::new()));
         let total_count = worktrees.len();
-        
+
         Ok(WorktreeListing {
             worktrees: worktrees.clone(),
             main,
@@ -98,44 +101,59 @@ impl WorktreeRepository for GitWorktreeAdapter {
         })
     }
 
-    fn create(&self, repo_path: &Path, branch: &BranchName, worktree_path: &Path) -> DomainResult<Worktree> {
-        let path_str = worktree_path.to_str().ok_or_else(|| {
-            WorktreeError::InvalidPath("Invalid worktree path".to_string())
-        })?;
-        
-        let _output = self.run_git(repo_path, &["worktree", "add", "-b", branch.as_str(), path_str, "HEAD"])?;
-        
-        Ok(Worktree::new(branch.clone(), worktree_path.to_path_buf(), "HEAD".to_string()))
+    fn create(
+        &self,
+        repo_path: &Path,
+        branch: &BranchName,
+        worktree_path: &Path,
+    ) -> DomainResult<Worktree> {
+        let path_str = worktree_path
+            .to_str()
+            .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
+
+        let _output = self.run_git(
+            repo_path,
+            &["worktree", "add", "-b", branch.as_str(), path_str, "HEAD"],
+        )?;
+
+        Ok(Worktree::new(
+            branch.clone(),
+            worktree_path.to_path_buf(),
+            "HEAD".to_string(),
+        ))
     }
 
     fn remove(&self, worktree_path: &Path, force: bool) -> DomainResult<()> {
-        let path_str = worktree_path.to_str().ok_or_else(|| {
-            WorktreeError::InvalidPath("Invalid worktree path".to_string())
-        })?;
-        
+        let path_str = worktree_path
+            .to_str()
+            .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
+
         let mut args = vec!["worktree", "remove", path_str];
         if force {
             args.push("--force");
         }
-        
+
         self.run_git(worktree_path, &args)?;
         Ok(())
     }
 
     fn lock(&self, worktree_path: &Path, reason: &str) -> DomainResult<()> {
-        let path_str = worktree_path.to_str().ok_or_else(|| {
-            WorktreeError::InvalidPath("Invalid worktree path".to_string())
-        })?;
-        
-        self.run_git(worktree_path, &["worktree", "lock", path_str, "--reason", reason])?;
+        let path_str = worktree_path
+            .to_str()
+            .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
+
+        self.run_git(
+            worktree_path,
+            &["worktree", "lock", path_str, "--reason", reason],
+        )?;
         Ok(())
     }
 
     fn unlock(&self, worktree_path: &Path) -> DomainResult<()> {
-        let path_str = worktree_path.to_str().ok_or_else(|| {
-            WorktreeError::InvalidPath("Invalid worktree path".to_string())
-        })?;
-        
+        let path_str = worktree_path
+            .to_str()
+            .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
+
         self.run_git(worktree_path, &["worktree", "unlock", path_str])?;
         Ok(())
     }
@@ -164,16 +182,28 @@ impl Default for SimpleFilesystemAdapter {
 
 impl BranchOperations for GitWorktreeAdapter {
     fn exists(&self, repo_path: &Path, branch: &BranchName) -> DomainResult<bool> {
-        let output = self.run_git(repo_path, &["rev-parse", "--verify", &format!("origin/{}", branch.as_str())])?;
+        let output = self.run_git(
+            repo_path,
+            &[
+                "rev-parse",
+                "--verify",
+                &format!("origin/{}", branch.as_str()),
+            ],
+        )?;
         Ok(!output.trim().is_empty())
     }
 
-    fn create(&self, repo_path: &Path, branch: &BranchName, from_ref: Option<&str>) -> DomainResult<()> {
+    fn create(
+        &self,
+        repo_path: &Path,
+        branch: &BranchName,
+        from_ref: Option<&str>,
+    ) -> DomainResult<()> {
         let mut args = vec!["checkout", "-b", branch.as_str()];
         if let Some(ref_name) = from_ref {
             args.push(ref_name);
         }
-        
+
         self.run_git(repo_path, &args)?;
         Ok(())
     }

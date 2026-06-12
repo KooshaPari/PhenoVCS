@@ -33,7 +33,12 @@ pub trait BranchOperations: Send + Sync {
     fn exists(&self, repo_path: &Path, branch: &BranchName) -> DomainResult<bool>;
 
     /// Create a new branch
-    fn create(&self, repo_path: &Path, branch: &BranchName, from_ref: Option<&str>) -> DomainResult<()>;
+    fn create(
+        &self,
+        repo_path: &Path,
+        branch: &BranchName,
+        from_ref: Option<&str>,
+    ) -> DomainResult<()>;
 
     /// Delete a branch
     fn delete(&self, repo_path: &Path, branch: &BranchName) -> DomainResult<()>;
@@ -45,7 +50,11 @@ pub trait BranchOperations: Send + Sync {
 /// Port for cleanup operations
 pub trait CleanupOperations: Send + Sync {
     /// Find worktrees matching cleanup policy
-    fn find_for_cleanup(&self, repo_path: &Path, policy: &CleanupPolicy) -> DomainResult<Vec<Worktree>>;
+    fn find_for_cleanup(
+        &self,
+        repo_path: &Path,
+        policy: &CleanupPolicy,
+    ) -> DomainResult<Vec<Worktree>>;
 
     /// Clean up worktrees based on policy
     fn cleanup(&self, repo_path: &Path, policy: &CleanupPolicy) -> DomainResult<Vec<Worktree>>;

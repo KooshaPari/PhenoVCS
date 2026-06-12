@@ -39,7 +39,7 @@ impl FilesystemOperations for SimpleFilesystemAdapter {
         if !path.exists() {
             return Ok(true);
         }
-        
+
         let entries = fs::read_dir(path)?;
         Ok(entries.count() == 0)
     }

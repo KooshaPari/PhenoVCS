@@ -1,7 +1,6 @@
 //! worktree-manager CLI entry point
 
 use clap::Parser;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use worktree_manager::{
     application::WorktreeService,
@@ -11,16 +10,12 @@ use worktree_manager::{
 };
 
 fn main() -> anyhow::Result<()> {
-    // Initialize tracing
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "wtm=info".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
     let cli = Cli::parse();
+    // Use clap-ext's tracing setup. Returns anyhow::Result because the
+    // worktree-manager domain errors (WorktreeError) are not part of
+    // clap_ext's CliError enum and forcing a hand-rolled From impl would
+    // leak domain types into the shared library.
+    clap_ext::prelude::setup_tracing(cli.verbosity.to_filter());
 
     // Determine repo path
     let repo_path = cli.repo.map(Ok).unwrap_or_else(std::env::current_dir)?;

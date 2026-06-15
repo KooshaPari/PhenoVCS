@@ -7,3 +7,7 @@ lint: fmt-check (just --justfile {{justfile_path()}} lint)
 
 # Audit: cargo-deny + cargo-audit (combined)
 audit: (just --justfile {{justfile_path()}} deny) (just --justfile {{justfile_path()}} --justfile {{justfile_path()}} audit)
+
+# Measure code coverage (SSOT: see grade.sh for the canonical command)
+coverage:
+    cargo llvm-cov --workspace --fail-under-lines 85

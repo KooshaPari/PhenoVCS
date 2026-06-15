@@ -1,8 +1,4 @@
 name: Release
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
 
   push:
@@ -21,6 +17,10 @@ permissions:
 
 timeout-minutes: 20
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   publish:
     runs-on: ubuntu-24.04

@@ -1,8 +1,4 @@
 name: OpenSSF Scorecard
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 on:
 
   branch_protection_rule:
@@ -21,6 +17,10 @@ permissions:
 
 timeout-minutes: 10
 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   analysis:
     name: Scorecard analysis

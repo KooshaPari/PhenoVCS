@@ -1,6 +1,7 @@
 //! worktree-manager CLI entry point
 
 use clap::Parser;
+use phenovcs_observability::{self, SERVICE_NAME};
 
 use worktree_manager::{
     application::WorktreeService,
@@ -10,6 +11,17 @@ use worktree_manager::{
 };
 
 fn main() -> anyhow::Result<()> {
+    let otlp_endpoint = phenovcs_observability::otlp_endpoint();
+    let mut attrs = std::collections::HashMap::new();
+    attrs.insert("service".to_string(), SERVICE_NAME.to_string());
+    attrs.insert("otlp_endpoint".to_string(), otlp_endpoint.clone());
+    // Emit the OTLP span synchronously via a one-shot tokio runtime.
+    // This avoids blocking startup while still producing a span before any
+    // user-visible work happens.
+    let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+    rt.block_on(phenovcs_observability::emit_span("phenovcs.start", attrs));
+    tracing::info!(service = SERVICE_NAME, otlp_endpoint = %otlp_endpoint, "phenovcs starting");
+
     let cli = Cli::parse();
     // Use clap-ext's tracing setup. Returns anyhow::Result because the
     // worktree-manager domain errors (WorktreeError) are not part of

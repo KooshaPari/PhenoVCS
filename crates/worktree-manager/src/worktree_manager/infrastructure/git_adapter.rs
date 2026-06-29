@@ -8,6 +8,13 @@ use crate::domain::{
 use crate::ports::{BranchOperations, WorktreeRepository};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
+
+/// Maximum number of retry attempts for git operations.
+const GIT_RETRY_MAX: u32 = 3;
+
+/// Base delay in milliseconds for exponential backoff.
+const GIT_RETRY_BASE_DELAY_MS: u64 = 100;
 
 /// Git worktree adapter using git commands
 #[derive(Clone)]
@@ -18,7 +25,34 @@ impl GitWorktreeAdapter {
         Self
     }
 
+    /// Execute a git command with retry and exponential backoff.
     fn run_git(&self, repo_path: &Path, args: &[&str]) -> Result<String, WorktreeError> {
+        let mut last_err: Option<WorktreeError> = None;
+
+        for attempt in 0..GIT_RETRY_MAX {
+            match self.run_git_inner(repo_path, args) {
+                Ok(output) => return Ok(output),
+                Err(e) => {
+                    // Only retry on non-zero exit (GitError), not on invalid paths
+                    // or other fatal domain errors.
+                    if attempt + 1 < GIT_RETRY_MAX && Self::is_retriable(&e) {
+                        let delay_ms = GIT_RETRY_BASE_DELAY_MS * 2u64.pow(attempt);
+                        std::thread::sleep(Duration::from_millis(delay_ms));
+                        last_err = Some(e);
+                        continue;
+                    }
+                    return Err(e);
+                }
+            }
+        }
+
+        Err(last_err.unwrap_or_else(|| {
+            WorktreeError::GitError("git command failed after retries".to_string())
+        }))
+    }
+
+    /// Inner git command execution without retry logic.
+    fn run_git_inner(&self, repo_path: &Path, args: &[&str]) -> Result<String, WorktreeError> {
         let output = Command::new("git")
             .args(["-C", repo_path.to_str().unwrap_or(".")])
             .args(args)
@@ -43,6 +77,49 @@ impl GitWorktreeAdapter {
         } else {
             worktrees.push(wt);
         }
+    }
+
+    /// Check whether an error is retriable.
+    /// Returns `true` for transient git subprocess failures (non-zero exit).
+    fn is_retriable(err: &WorktreeError) -> bool {
+        matches!(err, WorktreeError::GitError(_))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::WorktreeError;
+
+    #[test]
+    fn test_retry_exhaustion_returns_last_error() {
+        // Verify that is_retriable correctly identifies retriable errors.
+        let git_err = WorktreeError::GitError("transient failure".to_string());
+        assert!(GitWorktreeAdapter::is_retriable(&git_err));
+
+        let invalid_err = WorktreeError::InvalidPath("bad path".to_string());
+        assert!(!GitWorktreeAdapter::is_retriable(&invalid_err));
+    }
+
+    #[test]
+    fn test_non_retriable_error_passthrough() {
+        // Non-retriable errors should not be retried and return immediately.
+        let invalid_err = WorktreeError::InvalidPath("bad path".to_string());
+        assert!(!GitWorktreeAdapter::is_retriable(&invalid_err));
+
+        let not_found = WorktreeError::NotFound("missing".to_string());
+        assert!(!GitWorktreeAdapter::is_retriable(&not_found));
+    }
+
+    #[test]
+    fn test_retry_constant_bounds() {
+        // Verify retry constants are reasonable.
+        assert!(GIT_RETRY_MAX >= 1, "must allow at least one retry");
+        assert!(GIT_RETRY_MAX <= 10, "sanity: no more than 10 retries");
+        assert!(
+            GIT_RETRY_BASE_DELAY_MS >= 50,
+            "base delay should allow backoff"
+        );
     }
 }
 

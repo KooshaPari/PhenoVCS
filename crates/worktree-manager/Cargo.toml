@@ -34,6 +34,8 @@ clap-ext = { workspace = true }
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+phenovcs-observability = { path = "../phenovcs-observability" }
+tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
 
 [dev-dependencies]
 tempfile = "3.0"

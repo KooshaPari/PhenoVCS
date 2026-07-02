@@ -114,13 +114,19 @@ mod tests {
     /// and -v to LevelFilter::DEBUG.
     #[test]
     fn verbosity_filter_mapping() {
-        let quiet = Verbosity { verbose: 0, quiet: true };
+        let quiet = Verbosity {
+            verbose: 0,
+            quiet: true,
+        };
         assert_eq!(
             quiet.to_filter(),
             tracing_subscriber::filter::LevelFilter::ERROR
         );
 
-        let verbose = Verbosity { verbose: 1, quiet: false };
+        let verbose = Verbosity {
+            verbose: 1,
+            quiet: false,
+        };
         assert_eq!(
             verbose.to_filter(),
             tracing_subscriber::filter::LevelFilter::DEBUG

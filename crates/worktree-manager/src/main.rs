@@ -2,6 +2,8 @@
 
 use clap::Parser;
 
+use tracing::{error, info, warn};
+
 use worktree_manager::{
     application::WorktreeService,
     cli::{Cli, Commands},
@@ -27,6 +29,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::List { json } => {
             let listing = service.list_worktrees(&repo_path)?;
+            info!(worktree_count = listing.total_count, "Listed worktrees");
 
             if json {
                 println!("{}", serde_json::to_string_pretty(&listing)?);
@@ -55,50 +58,59 @@ fn main() -> anyhow::Result<()> {
                 service.create_worktree(&repo_path, branch_name, &path, start_point.as_deref());
 
             if result.success {
-                println!(
-                    "Created worktree: {}",
-                    result.worktree.unwrap().path.display()
-                );
+                if let Some(worktree) = result.worktree {
+                    println!("Created worktree: {}", worktree.path.display());
+                }
                 for warning in result.warnings {
+                    warn!("{}", warning);
                     eprintln!("Warning: {}", warning);
                 }
             } else {
-                eprintln!("Failed: {}", result.error.unwrap());
+                let error_msg = result.error.as_deref().unwrap_or("Unknown error");
+                error!("{}", error_msg);
+                eprintln!("Failed: {}", error_msg);
                 std::process::exit(1);
             }
         }
 
         Commands::Remove { path, force } => {
             service.remove_worktree(&path, force)?;
+            info!("Removed worktree: {}", path.display());
             println!("Removed worktree: {}", path.display());
         }
 
         Commands::Lock { path, reason } => {
             service.lock_worktree(&path, &reason)?;
+            info!("Locked worktree: {}", path.display());
             println!("Locked: {}", path.display());
         }
 
         Commands::Unlock { path } => {
             service.unlock_worktree(&path)?;
+            info!("Unlocked worktree: {}", path.display());
             println!("Unlocked: {}", path.display());
         }
 
         Commands::Prune => {
             service.prune(&repo_path)?;
+            info!("Pruned stale worktrees");
             println!("Pruned stale worktree references");
         }
 
         Commands::Branch => {
             let branch = service.current_branch(&repo_path)?;
+            info!(branch = branch.as_str(), "Queried current branch");
             println!("{}", branch.as_str());
         }
 
         // Cleanup commands - simplified, just prune for now
         Commands::Cleanup { dry_run, .. } => {
             if dry_run {
+                info!("Dry run cleanup - no changes made");
                 println!("Dry run - no changes made");
             } else {
                 service.prune(&repo_path)?;
+                info!("Pruned stale worktrees via cleanup");
                 println!("Pruned stale worktree references");
             }
         }

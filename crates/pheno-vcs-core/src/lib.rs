@@ -1,5 +1,7 @@
 //! Core VCS primitives for PhenoVCS.
 
+pub mod snapshot;
+
 #[cfg(test)]
 mod tests {
     #[test]

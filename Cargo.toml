@@ -1,8 +1,8 @@
 [workspace]
 members = [
+  "crates/airlock-v2",
   "crates/pheno-vcs-core",
   "crates/worktree-manager",
-  "crates/phenovcs-observability",
 ]
 resolver = "2"
 

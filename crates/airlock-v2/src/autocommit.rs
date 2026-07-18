@@ -12,6 +12,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::git_ops::{
     commit_all, dirty_count, is_inside_work_tree, primary_branch, try_push_or_snapshot,
 };
+use crate::registry::RepoEntry;
+use crate::registry::Registry;
 use crate::registry::{
     append_event, load, now_iso, parse_iso, save, short_ts, upsert_entry,
 };
@@ -86,9 +88,10 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<AutocommitSummary> {
         ..Default::default()
     };
 
-    for (path, meta) in registry.sorted() {
+    let entries: Vec<(String, RepoEntry)> = registry.sorted().map(|(k, v)| (k.clone(), v.clone())).collect();
+    for (path, meta) in &entries {
         summary.visited += 1;
-        let r = run_one(state_root, Path::new(path), meta, dry_run, &mut registry);
+        let r = run_one(state_root, Path::new(path), meta.clone(), dry_run, &mut registry);
         match r {
             Ok(rec) => {
                 if rec.error.is_some() {

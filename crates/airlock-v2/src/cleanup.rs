@@ -12,7 +12,7 @@ use crate::git_ops::{
     ahead_behind, current_branch, is_inside_work_tree, recover_one_stash, run_git, stash_count,
 };
 use crate::registry::{
-    append_event, load, now_iso, save, short_ts, upsert_entry,
+    append_event, load, now_iso, save, short_ts, upsert_entry, Registry,
 };
 use crate::StateRoot;
 
@@ -168,7 +168,7 @@ fn run_one(state_root: &StateRoot, repo_path: &Path, dry_run: bool, registry: &m
                     });
                     let event = serde_json::json!({
                         "event": "branch-push",
-                        "path": repo_key(&path_key),
+                        "path": repo_path.display().to_string(),
                         "branch": branch,
                         "ahead": ahead,
                         "ok": ok,

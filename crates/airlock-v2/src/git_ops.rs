@@ -61,7 +61,7 @@ pub fn run_git(args: &[&str], cwd: &Path, timeout_secs: Option<u64>) -> Result<G
         // `Command::output` is blocking; we approximate timeout via spawn +
         // wait-timeout. A precise cross-platform timeout in std is not yet
         // stable, so we cap at 30s by default — push helpers override.
-        run_with_timeout(&mut cmd, Duration::from_secs(secs))
+        run_with_timeout(&mut cmd, Duration::from_secs(secs))?
     } else {
         cmd.output()
             .with_context(|| format!("git {:?} failed to spawn", args))?

@@ -1,18 +1,18 @@
 //! 8-hour cleanup cycle.
 //!
 //! Mirrors the Python `daemon_cleanup` function: walk the registry, for
-//! each repo try to recover any stashes (apply → wip-branch → push, drop
+//! each repo try to recover any stashes (apply -> wip-branch -> push, drop
 //! only after push), then check the current branch for unpushed commits
 //! and try `try_push_or_snapshot`.
 
 use anyhow::{Context, Result};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::git_ops::{
     ahead_behind, current_branch, is_inside_work_tree, recover_one_stash, run_git, stash_count,
 };
 use crate::registry::{
-    append_event, load, now_iso, save, short_ts, upsert_entry, Registry,
+    append_event, load, now_iso, save, short_ts, upsert_entry, Registry, RepoEntry,
 };
 use crate::StateRoot;
 
@@ -65,12 +65,17 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<CleanupSummary> {
     let mut registry = load(state_root)?;
     let mut summary = CleanupSummary {
         dry_run,
-        ..Default::default()
+        ..CleanupSummary::default()
     };
 
-    for (path, _meta) in registry.sorted() {
+    let entries: Vec<(String, RepoEntry)> = registry
+        .sorted()
+        .map(|(k, v)| (k.to_string(), v.clone()))
+        .collect();
+    for (path_key, entry) in entries {
         summary.visited += 1;
-        let rec = run_one(state_root, Path::new(path), dry_run, &mut registry);
+        let path = PathBuf::from(&path_key);
+        let rec = run_one(state_root, &path, dry_run, &mut registry);
         if rec.stashes_failed > 0 {
             summary.errors += 1;
         }
@@ -78,7 +83,7 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<CleanupSummary> {
             summary.commits_pushed += 1;
         }
         summary.stashes_recovered += rec.stashes_recovered;
-        summary.records.push((path.to_string(), rec));
+        summary.records.push((path_key.clone(), rec));
     }
 
     if !dry_run {
@@ -87,7 +92,12 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<CleanupSummary> {
     Ok(summary)
 }
 
-fn run_one(state_root: &StateRoot, repo_path: &Path, dry_run: bool, registry: &mut Registry) -> CleanupRecord {
+fn run_one(
+    state_root: &StateRoot,
+    repo_path: &Path,
+    dry_run: bool,
+    registry: &mut Registry,
+) -> CleanupRecord {
     let mut rec = CleanupRecord::default();
     if !is_inside_work_tree(repo_path).unwrap_or(false) {
         rec.skip = Some("not-a-git-repo".into());
@@ -139,8 +149,7 @@ fn run_one(state_root: &StateRoot, repo_path: &Path, dry_run: bool, registry: &m
                 }
                 Err(e) => {
                     rec.stashes_failed += 1;
-                    rec.stash_errors
-                        .push((stash_ref.clone(), format!("{e:#}")));
+                    rec.stash_errors.push((stash_ref.clone(), format!("{e:#}")));
                 }
             }
         }
@@ -151,11 +160,8 @@ fn run_one(state_root: &StateRoot, repo_path: &Path, dry_run: bool, registry: &m
         let (ahead, _) = ahead_behind(repo_path, &branch).unwrap_or((0, 0));
         rec.ahead = ahead;
         if ahead > 0 && !dry_run {
-            let push_result = crate::git_ops::try_push_or_snapshot(
-                repo_path,
-                &branch,
-                &short_ts(),
-            );
+            let push_result =
+                crate::git_ops::try_push_or_snapshot(repo_path, &branch, &short_ts());
             match push_result {
                 Ok((ok, msg)) => {
                     rec.push_ok = Some(ok);
@@ -185,8 +191,4 @@ fn run_one(state_root: &StateRoot, repo_path: &Path, dry_run: bool, registry: &m
     }
 
     rec
-}
-
-fn repo_key(s: &str) -> &str {
-    s
 }

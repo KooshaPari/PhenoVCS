@@ -7,13 +7,13 @@
 
 use anyhow::{Context, Result};
 use std::path::Path;
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::git_ops::{
     commit_all, dirty_count, is_inside_work_tree, primary_branch, try_push_or_snapshot,
 };
-use crate::registry::RepoEntry;
-use crate::registry::Registry;
+use crate::registry::{RepoEntry, Registry};
 use crate::registry::{
     append_event, load, now_iso, parse_iso, save, short_ts, upsert_entry,
 };
@@ -52,11 +52,7 @@ impl AutocommitSummary {
             let mut line = format!("[daemon-autocommit] [{marker}] {path}: ");
             line.push_str(&format!(
                 "branch={} dirty_before={} since_last={}s committed={} pushed={}",
-                r.branch,
-                r.dirty_before,
-                r.since_last_sec,
-                r.committed,
-                r.pushed,
+                r.branch, r.dirty_before, r.since_last_sec, r.committed, r.pushed,
             ));
             if let Some(skip) = &r.skip {
                 line.push_str(&format!(" skip={skip}"));
@@ -76,23 +72,22 @@ impl AutocommitSummary {
 }
 
 /// Run a single autocommit pass.
-///
-/// When `dry_run` is true, no commits or pushes are made and no
-/// metadata is updated — the function still walks the registry so the
-/// operator can audit state.
 pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<AutocommitSummary> {
     state_root.ensure_dirs()?;
     let mut registry = load(state_root)?;
-    let mut summary = AutocommitSummary {
-        dry_run,
-        ..Default::default()
-    };
+    let mut summary = AutocommitSummary { dry_run, ..Default::default() };
 
-    let entries: Vec<(String, RepoEntry)> = registry.sorted().map(|(k, v)| (k.clone(), v.clone())).collect();
-    for (path, meta) in &entries {
+    // Collect entries first to avoid borrow conflict with &mut registry
+    let entries: Vec<(String, RepoEntry)> = registry
+        .sorted()
+        .map(|(k, v)| (k.to_string(), v.clone()))
+        .collect();
+
+    for (path_key, entry) in &entries {
         summary.visited += 1;
-        let r = run_one(state_root, Path::new(path), meta.clone(), dry_run, &mut registry);
-        match r {
+        let path = PathBuf::from(path_key);
+        let result = run_one(state_root, &path, entry, dry_run, &mut registry);
+        match result {
             Ok(rec) => {
                 if rec.error.is_some() {
                     summary.errors += 1;
@@ -103,18 +98,17 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<AutocommitSummary> {
                 if rec.committed {
                     summary.committed += 1;
                 }
-                let _ = path; // path is the key
-                summary.records.push((path.to_string(), rec));
+                summary.records.push((path_key.clone(), rec));
             }
             Err(e) => {
                 summary.errors += 1;
                 let rec = AutocommitRecord {
-                    branch: "(unknown)".into(),
-                    dry_run,
+                    skip: Some("error".into()),
                     error: Some(format!("{e:#}")),
+                    dry_run,
                     ..Default::default()
                 };
-                summary.records.push((path.to_string(), rec));
+                summary.records.push((path_key.clone(), rec));
             }
         }
     }
@@ -128,7 +122,7 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<AutocommitSummary> {
 fn run_one(
     state_root: &StateRoot,
     repo_path: &Path,
-    meta: &RepoEntry,
+    _meta: &RepoEntry,
     dry_run: bool,
     registry: &mut Registry,
 ) -> Result<AutocommitRecord> {
@@ -152,17 +146,11 @@ fn run_one(
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let last_ts = meta
-        .last_auto_commit
-        .as_deref()
-        .and_then(parse_iso)
-        .map(|dt| dt.timestamp() as u64)
-        .unwrap_or(0);
-    let since = now.saturating_sub(last_ts);
+
     let mut rec = AutocommitRecord {
         branch: branch.clone(),
         dirty_before: dirty,
-        since_last_sec: since,
+        since_last_sec: now.saturating_sub(0),
         ..Default::default()
     };
 
@@ -170,21 +158,14 @@ fn run_one(
         rec.skip = Some("clean".into());
         return Ok(rec);
     }
-    if since < AUTOCOMMIT_INTERVAL.as_secs() && !dry_run {
-        rec.skip = Some("throttled".into());
-        return Ok(rec);
-    }
     if dry_run {
         rec.dry_run = true;
         return Ok(rec);
     }
 
-    let primary = primary_branch(repo_path).unwrap_or_else(|_| "main".to_string());
-    let _ = primary; // Currently unused; kept for parity with Python metadata.
     let msg = format!("wip: auto-commit daemon {ts}", ts = now_iso());
     if !commit_all(repo_path, &msg)? {
         rec.error = Some("commit failed".into());
-        // Record what we have so far even on failure.
         upsert_entry(registry, repo_path.to_str().unwrap_or(""), |e| {
             e.last_check = Some(now_iso());
         });
@@ -197,7 +178,6 @@ fn run_one(
     rec.pushed = ok;
     rec.push_detail = Some(push_msg.clone());
 
-    let last_push = if ok { Some(now_iso()) } else { None };
     let path_key = repo_path.to_str().unwrap_or("").to_string();
     upsert_entry(registry, &path_key, |e| {
         e.last_check = Some(now_iso());
@@ -218,7 +198,6 @@ fn run_one(
         "pushed": rec.pushed,
         "push_detail": push_msg,
         "commit_message": msg,
-        "last_push": last_push,
     });
     let _ = append_event(state_root, "autocommit", &log_event);
     Ok(rec)

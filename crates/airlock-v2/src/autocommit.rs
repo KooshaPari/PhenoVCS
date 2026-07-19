@@ -10,14 +10,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::git_ops::{
-    commit_all, dirty_count, is_inside_work_tree, primary_branch, try_push_or_snapshot,
-};
+use crate::git_ops::{commit_all, dirty_count, is_inside_work_tree, try_push_or_snapshot};
 use crate::registry::{RepoEntry, Registry};
-use crate::registry::{
-    append_event, load, now_iso, parse_iso, save, short_ts, upsert_entry,
-};
-use crate::{StateRoot, AUTOCOMMIT_INTERVAL};
+use crate::registry::{append_event, load, now_iso, save, short_ts, upsert_entry};
+use crate::StateRoot;
 
 /// Per-repo decision record.
 #[derive(Debug, Clone, Default)]

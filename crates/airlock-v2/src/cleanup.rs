@@ -72,7 +72,7 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<CleanupSummary> {
         .sorted()
         .map(|(k, v)| (k.to_string(), v.clone()))
         .collect();
-    for (path_key, entry) in entries {
+    for (path_key, _entry) in entries {
         summary.visited += 1;
         let path = PathBuf::from(&path_key);
         let rec = run_one(state_root, &path, dry_run, &mut registry);

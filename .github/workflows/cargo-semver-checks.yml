@@ -10,4 +10,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      # Only crates with publish=true / crates.io presence. Workspace crates
+      # airlock-v2, ports, worktree-manager, etc. are unpublished and make
+      # cargo-semver-checks fail (no registry baseline / no lib quirks).
       - uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          package: pheno-tracing
+          manifest-path: crates/pheno-tracing/Cargo.toml

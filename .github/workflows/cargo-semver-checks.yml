@@ -8,12 +8,47 @@ on:
 jobs:
   semver-checks:
     runs-on: ubuntu-24.04
-    # No workspace crates have a crates.io baseline yet; cargo-semver-checks
-    # requires a published version. Skip until first crates.io release.
-    if: false
     steps:
       - uses: actions/checkout@v4
-      - uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
-          package: pheno-tracing
-          manifest-path: crates/pheno-tracing/Cargo.toml
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-semver-checks
+        run: cargo install cargo-semver-checks --locked --version 0.49.0
+
+      # Workspace crates are not on crates.io yet. check-release against the
+      # registry fails with "not found in registry". Use a git baseline when
+      # the package already exists on the PR base; otherwise treat as new API
+      # surface (no prior release to break) and exit successfully.
+      - name: Run cargo-semver-checks
+        env:
+          PACKAGE: pheno-tracing
+          MANIFEST: crates/pheno-tracing/Cargo.toml
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_SHA}" ]; then
+            BASE_SHA="$(git merge-base HEAD origin/main 2>/dev/null || echo origin/main)"
+          fi
+
+          if cargo search "${PACKAGE}" --limit 1 2>/dev/null | grep -q "^${PACKAGE} "; then
+            echo "Registry baseline available for ${PACKAGE}"
+            cargo semver-checks check-release \
+              --package "${PACKAGE}" \
+              --manifest-path "${MANIFEST}"
+            exit 0
+          fi
+
+          if git cat-file -e "${BASE_SHA}:${MANIFEST}" 2>/dev/null; then
+            echo "Using git baseline ${BASE_SHA} for unpublished ${PACKAGE}"
+            cargo semver-checks check-release \
+              --package "${PACKAGE}" \
+              --manifest-path "${MANIFEST}" \
+              --baseline-rev "${BASE_SHA}"
+            exit 0
+          fi
+
+          echo "${PACKAGE} is new relative to ${BASE_SHA} and not on crates.io."
+          echo "No prior public API baseline — semver gate is a no-op for this PR."

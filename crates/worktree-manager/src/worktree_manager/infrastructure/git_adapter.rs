@@ -188,15 +188,20 @@ impl Default for SimpleFilesystemAdapter {
 
 impl BranchOperations for GitWorktreeAdapter {
     fn exists(&self, repo_path: &Path, branch: &BranchName) -> DomainResult<bool> {
-        let output = self.run_git(
+        // Local heads only — `origin/<name>` would Err on missing remotes and
+        // break create_worktree before `git worktree add -b` can run.
+        match self.run_git(
             repo_path,
             &[
                 "rev-parse",
                 "--verify",
-                &format!("origin/{}", branch.as_str()),
+                "--quiet",
+                &format!("refs/heads/{}", branch.as_str()),
             ],
-        )?;
-        Ok(!output.trim().is_empty())
+        ) {
+            Ok(_) => Ok(true),
+            Err(_) => Ok(false),
+        }
     }
 
     fn create(

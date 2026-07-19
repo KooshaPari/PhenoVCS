@@ -110,20 +110,22 @@ impl WorktreeRepository for GitWorktreeAdapter {
         repo_path: &Path,
         branch: &BranchName,
         worktree_path: &Path,
+        start_point: Option<&str>,
     ) -> DomainResult<Worktree> {
         let path_str = worktree_path
             .to_str()
             .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
 
+        let start = start_point.unwrap_or("HEAD");
         let _output = self.run_git(
             repo_path,
-            &["worktree", "add", "-b", branch.as_str(), path_str, "HEAD"],
+            &["worktree", "add", "-b", branch.as_str(), path_str, start],
         )?;
 
         Ok(Worktree::new(
             branch.clone(),
             worktree_path.to_path_buf(),
-            "HEAD".to_string(),
+            start.to_string(),
         ))
     }
 

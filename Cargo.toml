@@ -5,6 +5,7 @@ members = [
     "crates/airlock-v2",
     "crates/phenovcs-observability",
     "crates/pheno-tracing",
+    "ports",
 ]
 resolver = "2"
 

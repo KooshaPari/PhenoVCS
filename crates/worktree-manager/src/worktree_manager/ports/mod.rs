@@ -11,8 +11,16 @@ pub trait WorktreeRepository: Send + Sync {
     /// List all worktrees in a repository
     fn list(&self, repo_path: &Path) -> DomainResult<WorktreeListing>;
 
-    /// Create a new worktree with associated branch
-    fn create(&self, repo_path: &Path, branch: &BranchName, path: &Path) -> DomainResult<Worktree>;
+    /// Create a new worktree with associated branch.
+    ///
+    /// `start_point` is the commit/branch to base the new branch on (defaults to HEAD).
+    fn create(
+        &self,
+        repo_path: &Path,
+        branch: &BranchName,
+        path: &Path,
+        start_point: Option<&str>,
+    ) -> DomainResult<Worktree>;
 
     /// Remove a worktree
     fn remove(&self, worktree_path: &Path, force: bool) -> DomainResult<()>;

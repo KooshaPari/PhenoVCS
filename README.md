@@ -23,19 +23,16 @@
 
 | Field | Value |
 |---|---|
-| Last commit | 2026-06-08 |
-| Open issues | 0 |
-| Open PRs | 4 |
-| Focus | Hygiene bundle (audit confirms all baselines already met) |
+| Last commit | 2026-07-18 (airlock-v2 WIP + T0 core/airlock) |
+| Open issues | see GitHub |
+| Branch | `feat/a-plus-t0-core-airlock` (airlock WIP base) |
+| Focus | T0 — workspace honesty + `pheno-vcs-core` start; airlock-v2 not yet landed |
 
-Progress: █████████░ 90%
+Progress: ██░░░░░░░░ ~20% (scaffolding + airlock WIP — not hygiene-complete)
 
-> **Pinned references (Phenotype-org)**
-> - MSRV: see rust-toolchain.toml
-> - cargo-deny config: see deny.toml
-> - cargo-audit: rustsec/audit-check@v2 weekly
-> - Branch protection: 1 reviewer required, no force-push
-> - Authority: phenotype-org-governance/SUPERSEDED.md
+> Honest status: core crates exist; `pheno-vcs-core` now has shared types/traits;
+> `ports/` is a workspace member (multi-backend Vcs stubs); `airlock-v2` is vendored
+> but still WIP. Integration tests and an airlock land PR are T1+.
 
 > **Pinned references (Phenotype-org)**
 > - MSRV: see rust-toolchain.toml
@@ -64,7 +61,10 @@ The crates here are consumed by agent dispatchers, the Phenotype daemon, and hig
 
 ## Status
 
-**Active — scaffolding phase.** Core crates (`pheno-vcs-core`, `worktree-manager`) are stabilizing; see [SPEC.md](./SPEC.md), [PLAN.md](./PLAN.md), and [ADR.md](./ADR.md) for current design.
+**Active — early scaffolding + airlock WIP.** `pheno-vcs-core` exports shared types
+(`VersionedPath`, `VcsError`, thin ports); `worktree-manager` is hexagonal and
+consumes core; `ports/` holds multi-backend `Vcs` stubs; `airlock-v2` is vendored
+but not released. See [SPEC.md](./SPEC.md), [PLAN.md](./PLAN.md), and [ADR.md](./ADR.md).
 
 ## Requirements
 
@@ -99,8 +99,12 @@ worktree-manager   = { git = "https://github.com/KooshaPari/PhenoVCS" }
 
 ```
 crates/
-  pheno-vcs-core/      # Core VCS traits, types, and git-agnostic primitives
+  pheno-vcs-core/      # Shared VCS types/traits (VersionedPath, VcsError, …)
   worktree-manager/    # Git worktree lifecycle — create, lock, integrate, prune
+  airlock-v2/          # Vendored airlock engine (WIP)
+  phenovcs-observability/
+  pheno-tracing/
+ports/                 # Multi-backend Vcs port + git/jj stub adapters
 ADR.md                 # Architecture decision records
 SPEC.md                # Formal spec for worktree semantics and invariants
 PRD.md                 # Product requirements

@@ -647,7 +647,6 @@ dependencies = [
 name = "pheno-vcs-core"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "thiserror",
 ]
 
@@ -691,6 +690,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51bae2ac328883f7acdfea3d66a7c35751187f870bc81f94563733a154d7a670"
 dependencies = [
  "plotters-backend",
+]
+
+[[package]]
+name = "ports"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "pheno-vcs-core",
+ "tokio",
 ]
 
 [[package]]
@@ -1319,6 +1327,7 @@ dependencies = [
  "chrono",
  "clap",
  "clap-ext",
+ "pheno-vcs-core",
  "phenovcs-observability",
  "serde",
  "serde_json",

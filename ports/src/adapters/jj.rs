@@ -1,5 +1,6 @@
-use super::vcs::{Commit, Diff, Vcs};
+use crate::vcs::{Commit, Diff, Vcs};
 use async_trait::async_trait;
+use pheno_vcs_core::VcsError;
 
 pub struct JjBackend;
 
@@ -8,24 +9,20 @@ impl Vcs for JjBackend {
     fn backend(&self) -> &str {
         "jj"
     }
-    async fn log(&self, _n: usize) -> Result<Vec<Commit>, Box<dyn std::error::Error + Send + Sync>> {
+
+    async fn log(&self, _n: usize) -> Result<Vec<Commit>, VcsError> {
         Ok(vec![])
     }
-    async fn diff(
-        &self,
-        from: &str,
-        to: &str,
-    ) -> Result<Diff, Box<dyn std::error::Error + Send + Sync>> {
+
+    async fn diff(&self, from: &str, to: &str) -> Result<Diff, VcsError> {
         Ok(Diff {
             from: from.into(),
             to: to.into(),
-            patch: "".into(),
+            patch: String::new(),
         })
     }
-    async fn commit(
-        &self,
-        _msg: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+
+    async fn commit(&self, _msg: &str) -> Result<String, VcsError> {
         Ok("@".into())
     }
 }

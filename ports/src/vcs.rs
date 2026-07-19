@@ -1,7 +1,9 @@
 //! T77: PhenoVCS hexagonal port — Vcs.
 //!
-//! 3 adapters: GitBackend, JjBackend, SaplingBackend.
+//! Adapters: [`crate::adapters::git::GitBackend`], [`crate::adapters::jj::JjBackend`].
+
 use async_trait::async_trait;
+use pheno_vcs_core::VcsError;
 
 #[derive(Debug, Clone)]
 pub struct Commit {
@@ -21,11 +23,7 @@ pub struct Diff {
 #[async_trait]
 pub trait Vcs: Send + Sync {
     fn backend(&self) -> &str;
-    async fn log(&self, n: usize) -> Result<Vec<Commit>, Box<dyn std::error::Error + Send + Sync>>;
-    async fn diff(
-        &self,
-        from: &str,
-        to: &str,
-    ) -> Result<Diff, Box<dyn std::error::Error + Send + Sync>>;
-    async fn commit(&self, msg: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
+    async fn log(&self, n: usize) -> Result<Vec<Commit>, VcsError>;
+    async fn diff(&self, from: &str, to: &str) -> Result<Diff, VcsError>;
+    async fn commit(&self, msg: &str) -> Result<String, VcsError>;
 }

@@ -36,7 +36,7 @@ pub fn build_span(
     TraceOperation {
         trace_id: TraceId(trace_id.to_string()),
         span_id: SpanId(span_id.to_string()),
-        parent_span_id: parent_span_id.map(SpanId),
+        parent_span_id: parent_span_id.map(|s| SpanId(s.to_string())),
         kind,
         name: name.to_string(),
         attributes,

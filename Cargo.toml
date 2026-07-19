@@ -1,8 +1,12 @@
 [workspace]
 members = [
-  "crates/pheno-vcs-core",
-  "crates/worktree-manager",
-  "crates/phenovcs-observability",
+    "crates/pheno-vcs-core",
+    "crates/worktree-manager",
+    "crates/airlock-v2",
+    "crates/phenovcs-observability",
+    "crates/pheno-tracing",
+    "crates/clap-ext",
+    "ports",
 ]
 resolver = "2"
 
@@ -14,5 +18,6 @@ repository = "https://github.com/KooshaPari/PhenoVCS"
 rust-version = "1.75"
 
 [workspace.dependencies]
-clap = { version = "4.5", features = ["derive"] }
-clap-ext = { git = "https://github.com/KooshaPari/clap-ext", tag = "v0.1.0" }
+clap = { version = "4.5", features = ["derive", "wrap_help", "env"] }
+clap-ext = { path = "crates/clap-ext" }
+pheno-tracing = { path = "crates/pheno-tracing" }

@@ -42,7 +42,7 @@ where
         repo_path: &Path,
         branch_name: BranchName,
         worktree_path: &Path,
-        _start_point: Option<&str>,
+        start_point: Option<&str>,
     ) -> WorktreeResult {
         // Check if branch already exists
         match self.branches.exists(repo_path, &branch_name) {
@@ -56,10 +56,10 @@ where
             _ => {}
         }
 
-        // Create worktree
+        // Create worktree (start_point defaults to HEAD in the adapter)
         match self
             .repository
-            .create(repo_path, &branch_name, worktree_path)
+            .create(repo_path, &branch_name, worktree_path, start_point)
         {
             Ok(worktree) => WorktreeResult::success(worktree),
             Err(e) => WorktreeResult::failure(e.to_string()),

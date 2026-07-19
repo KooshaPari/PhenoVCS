@@ -8,4 +8,3 @@ description = "PhenoVCS observability substrate — thin re-export of pheno-trac
 
 [dependencies]
 pheno-tracing.workspace = true
-tracing = "0.1"

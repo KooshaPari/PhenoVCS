@@ -564,7 +564,10 @@ mod tests {
         let tmp = TempDir::new()?;
         let repo = init_git_repo(tmp.path())?;
         assert!(is_inside_work_tree(&repo)?);
-        let other = tmp.path().join("not-a-repo");
+        // Must be outside the repo tree — a subdirectory would still be
+        // inside the work tree from git's perspective.
+        let outside = TempDir::new()?;
+        let other = outside.path().join("not-a-repo");
         std::fs::create_dir_all(&other)?;
         assert!(!is_inside_work_tree(&other)?);
         Ok(())

@@ -12,8 +12,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::git_ops::{commit_all, dirty_count, is_inside_work_tree, try_push_or_snapshot};
 use crate::registry::{RepoEntry, Registry};
-use crate::registry::{append_event, load, now_iso, save, short_ts, upsert_entry};
-use crate::StateRoot;
+use crate::registry::{append_event, load, now_iso, parse_iso, save, short_ts, upsert_entry};
+use crate::{StateRoot, AUTOCOMMIT_INTERVAL};
 
 /// Per-repo decision record.
 #[derive(Debug, Clone, Default)]
@@ -118,7 +118,7 @@ pub fn run(state_root: &StateRoot, dry_run: bool) -> Result<AutocommitSummary> {
 fn run_one(
     state_root: &StateRoot,
     repo_path: &Path,
-    _meta: &RepoEntry,
+    meta: &RepoEntry,
     dry_run: bool,
     registry: &mut Registry,
 ) -> Result<AutocommitRecord> {
@@ -143,15 +143,28 @@ fn run_one(
         .map(|d| d.as_secs())
         .unwrap_or(0);
 
+    // Seconds since last auto-commit; u64::MAX means never committed (no throttle).
+    let since_last_sec = match meta.last_auto_commit.as_deref().and_then(parse_iso) {
+        Some(dt) => {
+            let last = dt.timestamp().max(0) as u64;
+            now.saturating_sub(last)
+        }
+        None => u64::MAX,
+    };
+
     let mut rec = AutocommitRecord {
         branch: branch.clone(),
         dirty_before: dirty,
-        since_last_sec: now.saturating_sub(0),
+        since_last_sec,
         ..Default::default()
     };
 
     if dirty == 0 {
         rec.skip = Some("clean".into());
+        return Ok(rec);
+    }
+    if since_last_sec < AUTOCOMMIT_INTERVAL.as_secs() {
+        rec.skip = Some("throttled".into());
         return Ok(rec);
     }
     if dry_run {

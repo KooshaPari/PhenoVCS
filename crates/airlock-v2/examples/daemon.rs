@@ -124,12 +124,12 @@ fn main() -> ExitCode {
     let mut cycle_count = 0u64;
     while !stop.load(Ordering::SeqCst) {
         cycle_count += 1;
-        let result = if mode == "autocommit" {
-            airlock_v2::autocommit::run(&state_root, false)
+        let tick_err = if mode == "autocommit" {
+            airlock_v2::autocommit::run(&state_root, false).err()
         } else {
-            airlock_v2::cleanup::run(&state_root, false)
+            airlock_v2::cleanup::run(&state_root, false).err()
         };
-        if let Err(e) = result {
+        if let Some(e) = tick_err {
             eprintln!("[daemon:{mode}] tick #{cycle_count} error: {e:#}");
         } else {
             println!("[daemon:{mode}] tick #{cycle_count} done");

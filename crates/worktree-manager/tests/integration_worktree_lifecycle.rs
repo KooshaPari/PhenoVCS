@@ -73,9 +73,21 @@ fn create_list_lock_remove_lifecycle() {
 
     let listing = svc.list_worktrees(&repo).expect("list");
     assert!(
-        listing.worktrees.iter().any(|w| same_path(&w.path, &wt_path))
-            || same_path(&listing.main.path, &wt_path),
-        "created worktree missing from list: {:?}",
+        listing.main.is_main,
+        "primary worktree must be classified is_main=true"
+    );
+    assert!(
+        same_path(&listing.main.path, &repo),
+        "main path should match repo after canonicalize: {:?} vs {:?}",
+        listing.main.path,
+        repo
+    );
+    assert!(
+        listing
+            .worktrees
+            .iter()
+            .any(|w| same_path(&w.path, &wt_path) && !w.is_main),
+        "linked worktree missing from list (or misclassified as main): {:?}",
         listing.worktrees
     );
 

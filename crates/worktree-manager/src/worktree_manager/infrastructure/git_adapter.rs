@@ -33,6 +33,15 @@ impl GitWorktreeAdapter {
         }
     }
 
+    /// Resolve paths for stable comparisons (macOS `/var` → `/private/var`).
+    fn canonicalize_path(path: &Path) -> PathBuf {
+        path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+    }
+
+    fn same_path(a: &Path, b: &Path) -> bool {
+        Self::canonicalize_path(a) == Self::canonicalize_path(b)
+    }
+
     /// Route a parsed worktree into the main slot or the worktrees list.
     ///
     /// Extracted from `WorktreeRepository::list` to remove the duplicated
@@ -55,10 +64,14 @@ impl Default for GitWorktreeAdapter {
 impl WorktreeRepository for GitWorktreeAdapter {
     fn list(&self, repo_path: &Path) -> DomainResult<WorktreeListing> {
         let output = self.run_git(repo_path, &["worktree", "list", "--porcelain"])?;
+        let repo_canonical = Self::canonicalize_path(repo_path);
 
         let mut worktrees: Vec<Worktree> = Vec::new();
         let mut main: Option<Worktree> = None;
         let mut current: Option<Worktree> = None;
+        // Git porcelain lists the primary worktree first; track that plus path
+        // equality so macOS `/var` vs `/private/var` still classifies correctly.
+        let mut seen_worktree = false;
 
         for line in output.lines() {
             if line.starts_with("worktree ") {
@@ -66,13 +79,16 @@ impl WorktreeRepository for GitWorktreeAdapter {
                     Self::push_record(wt, &mut main, &mut worktrees);
                 }
 
-                let path = line.trim_start_matches("worktree ");
-                let is_main =
-                    path.contains("/.git/worktrees") || path == repo_path.to_str().unwrap_or("");
+                let raw = PathBuf::from(line.trim_start_matches("worktree "));
+                let path = Self::canonicalize_path(&raw);
+                // Primary = first porcelain record OR path matches the repo root.
+                // (Never use `/.git/worktrees` — that is a gitdir path, not porcelain.)
+                let is_main = !seen_worktree || Self::same_path(&path, &repo_canonical);
+                seen_worktree = true;
                 current = Some(Worktree {
-                    id: WorktreeId(PathBuf::from(path)),
+                    id: WorktreeId(path.clone()),
                     branch: BranchName::default(),
-                    path: PathBuf::from(path),
+                    path,
                     head: String::new(),
                     created_at: chrono::Utc::now(),
                     is_main,
@@ -82,11 +98,17 @@ impl WorktreeRepository for GitWorktreeAdapter {
             } else if let Some(ref mut wt) = current {
                 if line.starts_with("branch ") {
                     wt.branch = BranchName::new(line.trim_start_matches("branch ").trim());
-                } else if line.starts_with("head ") {
-                    wt.head = line.trim_start_matches("head ").to_string();
-                } else if line.starts_with("locked ") {
+                } else if line.starts_with("HEAD ") {
+                    // git porcelain uses uppercase HEAD (not "head ").
+                    wt.head = line.trim_start_matches("HEAD ").to_string();
+                } else if line.starts_with("locked") {
                     wt.locked = true;
-                    wt.lock_reason = Some(line.trim_start_matches("locked ").to_string());
+                    let reason = line.strip_prefix("locked").unwrap_or("").trim();
+                    wt.lock_reason = if reason.is_empty() {
+                        None
+                    } else {
+                        Some(reason.to_string())
+                    };
                 }
             }
         }
@@ -95,7 +117,8 @@ impl WorktreeRepository for GitWorktreeAdapter {
             Self::push_record(wt, &mut main, &mut worktrees);
         }
 
-        let main = main.unwrap_or_else(|| Worktree::main(repo_path.to_path_buf(), String::new()));
+        let main =
+            main.unwrap_or_else(|| Worktree::main(repo_canonical, String::new()));
         let total_count = worktrees.len();
 
         Ok(WorktreeListing {

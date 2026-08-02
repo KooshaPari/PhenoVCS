@@ -14,4 +14,4 @@ rust-version = "1.75"
 
 [workspace.dependencies]
 clap = { version = "4.5", features = ["derive"] }
-clap-ext = { git = "https://github.com/KooshaPari/clap-ext", tag = "v0.1.0" }
+clap-ext = { version = "0.1.0", git = "https://github.com/KooshaPari/clap-ext", tag = "v0.1.0" }

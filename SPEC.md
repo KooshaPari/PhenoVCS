@@ -67,10 +67,10 @@ struct WorktreeListing {
 ```rust
 trait WorktreeRepository {
     fn list(&self, repo_path: &Path) -> Result<WorktreeListing>;
-    fn create(&self, repo_path: &Path, branch: &BranchName, path: &Path) -> Result<Worktree>;
-    fn remove(&self, path: &Path, force: bool) -> Result<()>;
-    fn lock(&self, path: &Path, reason: &str) -> Result<()>;
-    fn unlock(&self, path: &Path) -> Result<()>;
+    fn create(&self, repo_path: &Path, branch: &BranchName, path: &Path, start_point: Option<&str>) -> Result<Worktree>;
+    fn remove(&self, repo_path: &Path, path: &Path, force: bool) -> Result<()>;
+    fn lock(&self, repo_path: &Path, path: &Path, reason: &str) -> Result<()>;
+    fn unlock(&self, repo_path: &Path, path: &Path) -> Result<()>;
     fn prune(&self, repo_path: &Path) -> Result<()>;
 }
 
@@ -117,6 +117,25 @@ trait CleanupOperations {
 | Cleanup scan | <500ms |
 | Lock/unlock | <100ms |
 | Binary size | <5MB |
+
+## Verified lifecycle requirements
+
+The quality-loop coverage denominator is the nine externally observable
+requirements below. A requirement is covered only when a real-git integration
+test executes it through `WorktreeService` and asserts the resulting repository
+state.
+
+| ID | Requirement |
+|---|---|
+| QL-FR-001 | Listing identifies the canonical worktree and linked worktrees with short branch names and commit IDs. |
+| QL-FR-002 | Creating a worktree succeeds when the requested branch does not exist. |
+| QL-FR-003 | An explicit start point becomes the linked worktree's checked-out commit. |
+| QL-FR-004 | Existing and malformed branch names are rejected without creating a directory. |
+| QL-FR-005 | Locking a linked worktree records its lock and reason. |
+| QL-FR-006 | Unlocking clears both lock state and reason. |
+| QL-FR-007 | Removal is executed from the canonical repository and removes the linked directory. |
+| QL-FR-008 | Current-branch reporting returns the short branch name. |
+| QL-FR-009 | Invalid repository paths return a typed git error. |
 
 ## Dependencies
 

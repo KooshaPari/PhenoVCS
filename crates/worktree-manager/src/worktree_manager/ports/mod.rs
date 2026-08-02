@@ -12,16 +12,22 @@ pub trait WorktreeRepository: Send + Sync {
     fn list(&self, repo_path: &Path) -> DomainResult<WorktreeListing>;
 
     /// Create a new worktree with associated branch
-    fn create(&self, repo_path: &Path, branch: &BranchName, path: &Path) -> DomainResult<Worktree>;
+    fn create(
+        &self,
+        repo_path: &Path,
+        branch: &BranchName,
+        path: &Path,
+        start_point: Option<&str>,
+    ) -> DomainResult<Worktree>;
 
     /// Remove a worktree
-    fn remove(&self, worktree_path: &Path, force: bool) -> DomainResult<()>;
+    fn remove(&self, repo_path: &Path, worktree_path: &Path, force: bool) -> DomainResult<()>;
 
     /// Lock a worktree
-    fn lock(&self, worktree_path: &Path, reason: &str) -> DomainResult<()>;
+    fn lock(&self, repo_path: &Path, worktree_path: &Path, reason: &str) -> DomainResult<()>;
 
     /// Unlock a worktree
-    fn unlock(&self, worktree_path: &Path) -> DomainResult<()>;
+    fn unlock(&self, repo_path: &Path, worktree_path: &Path) -> DomainResult<()>;
 
     /// Prune stale worktree references
     fn prune(&self, repo_path: &Path) -> DomainResult<()>;

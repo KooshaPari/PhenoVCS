@@ -69,17 +69,17 @@ fn main() -> anyhow::Result<()> {
         }
 
         Commands::Remove { path, force } => {
-            service.remove_worktree(&path, force)?;
+            service.remove_worktree(&repo_path, &path, force)?;
             println!("Removed worktree: {}", path.display());
         }
 
         Commands::Lock { path, reason } => {
-            service.lock_worktree(&path, &reason)?;
+            service.lock_worktree(&repo_path, &path, &reason)?;
             println!("Locked: {}", path.display());
         }
 
         Commands::Unlock { path } => {
-            service.unlock_worktree(&path)?;
+            service.unlock_worktree(&repo_path, &path)?;
             println!("Unlocked: {}", path.display());
         }
 

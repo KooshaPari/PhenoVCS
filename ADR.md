@@ -23,3 +23,9 @@
 **Context:** Per-user defaults (naming pattern, default branch, prune policy) should be configurable.
 **Decision:** `~/.worktree-manager.toml` for user config; `.worktree-manager.toml` in repo root for project config. Project config takes precedence.
 **Rationale:** TOML is human-friendly; two-tier config allows per-project overrides.
+
+## ADR-005: Canonical Context for Linked-Worktree Mutations
+**Status:** Accepted
+**Context:** `git worktree remove`, `lock`, and `unlock` operate on repository metadata. Running them with `-C` set to the linked worktree can make self-removal fail and makes the caller's intended repository ambiguous.
+**Decision:** Every linked-worktree mutation receives both the canonical repository path and the linked-worktree path. Git executes with `-C <canonical-repository>` and targets the linked path explicitly. Creation validates branch names, checks local and `origin` refs, and honors the caller's start point.
+**Rationale:** The canonical path is stable for the full lifecycle, keeps destructive operations out of the target being removed, and makes the repository boundary explicit and testable.

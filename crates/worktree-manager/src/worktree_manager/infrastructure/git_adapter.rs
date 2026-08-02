@@ -33,6 +33,30 @@ impl GitWorktreeAdapter {
         }
     }
 
+    fn ref_exists(&self, repo_path: &Path, reference: &str) -> DomainResult<bool> {
+        let output = Command::new("git")
+            .args(["-C", repo_path.to_str().unwrap_or(".")])
+            .args(["show-ref", "--verify", "--quiet", reference])
+            .output()
+            .map_err(|e| WorktreeError::GitError(format!("git command failed: {}", e)))?;
+
+        match output.status.code() {
+            Some(0) => Ok(true),
+            Some(1) => Ok(false),
+            _ => Err(WorktreeError::GitError(format!(
+                "git show-ref failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ))),
+        }
+    }
+
+    fn same_path(left: &Path, right: &Path) -> bool {
+        match (left.canonicalize(), right.canonicalize()) {
+            (Ok(left), Ok(right)) => left == right,
+            _ => left == right,
+        }
+    }
+
     /// Route a parsed worktree into the main slot or the worktrees list.
     ///
     /// Extracted from `WorktreeRepository::list` to remove the duplicated
@@ -67,8 +91,7 @@ impl WorktreeRepository for GitWorktreeAdapter {
                 }
 
                 let path = line.trim_start_matches("worktree ");
-                let is_main =
-                    path.contains("/.git/worktrees") || path == repo_path.to_str().unwrap_or("");
+                let is_main = Self::same_path(Path::new(path), repo_path);
                 current = Some(Worktree {
                     id: WorktreeId(PathBuf::from(path)),
                     branch: BranchName::default(),
@@ -81,12 +104,20 @@ impl WorktreeRepository for GitWorktreeAdapter {
                 });
             } else if let Some(ref mut wt) = current {
                 if line.starts_with("branch ") {
-                    wt.branch = BranchName::new(line.trim_start_matches("branch ").trim());
-                } else if line.starts_with("head ") {
-                    wt.head = line.trim_start_matches("head ").to_string();
-                } else if line.starts_with("locked ") {
+                    let branch = line
+                        .trim_start_matches("branch ")
+                        .trim()
+                        .strip_prefix("refs/heads/")
+                        .unwrap_or_else(|| line.trim_start_matches("branch ").trim());
+                    wt.branch = BranchName::new(branch);
+                } else if line.starts_with("HEAD ") {
+                    wt.head = line.trim_start_matches("HEAD ").to_string();
+                } else if line == "locked" || line.starts_with("locked ") {
                     wt.locked = true;
-                    wt.lock_reason = Some(line.trim_start_matches("locked ").to_string());
+                    wt.lock_reason = line
+                        .strip_prefix("locked ")
+                        .filter(|reason| !reason.is_empty())
+                        .map(str::to_string);
                 }
             }
         }
@@ -110,24 +141,33 @@ impl WorktreeRepository for GitWorktreeAdapter {
         repo_path: &Path,
         branch: &BranchName,
         worktree_path: &Path,
+        start_point: Option<&str>,
     ) -> DomainResult<Worktree> {
         let path_str = worktree_path
             .to_str()
             .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
 
-        let _output = self.run_git(
+        self.run_git(
             repo_path,
-            &["worktree", "add", "-b", branch.as_str(), path_str, "HEAD"],
+            &["check-ref-format", "--branch", branch.as_str()],
+        )
+        .map_err(|_| WorktreeError::InvalidBranchName(branch.as_str().to_string()))?;
+
+        let from_ref = start_point.unwrap_or("HEAD");
+        self.run_git(
+            repo_path,
+            &["worktree", "add", "-b", branch.as_str(), path_str, from_ref],
         )?;
+        let head = self.run_git(worktree_path, &["rev-parse", "HEAD"])?;
 
         Ok(Worktree::new(
             branch.clone(),
             worktree_path.to_path_buf(),
-            "HEAD".to_string(),
+            head.trim().to_string(),
         ))
     }
 
-    fn remove(&self, worktree_path: &Path, force: bool) -> DomainResult<()> {
+    fn remove(&self, repo_path: &Path, worktree_path: &Path, force: bool) -> DomainResult<()> {
         let path_str = worktree_path
             .to_str()
             .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
@@ -137,28 +177,28 @@ impl WorktreeRepository for GitWorktreeAdapter {
             args.push("--force");
         }
 
-        self.run_git(worktree_path, &args)?;
+        self.run_git(repo_path, &args)?;
         Ok(())
     }
 
-    fn lock(&self, worktree_path: &Path, reason: &str) -> DomainResult<()> {
+    fn lock(&self, repo_path: &Path, worktree_path: &Path, reason: &str) -> DomainResult<()> {
         let path_str = worktree_path
             .to_str()
             .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
 
         self.run_git(
-            worktree_path,
+            repo_path,
             &["worktree", "lock", path_str, "--reason", reason],
         )?;
         Ok(())
     }
 
-    fn unlock(&self, worktree_path: &Path) -> DomainResult<()> {
+    fn unlock(&self, repo_path: &Path, worktree_path: &Path) -> DomainResult<()> {
         let path_str = worktree_path
             .to_str()
             .ok_or_else(|| WorktreeError::InvalidPath("Invalid worktree path".to_string()))?;
 
-        self.run_git(worktree_path, &["worktree", "unlock", path_str])?;
+        self.run_git(repo_path, &["worktree", "unlock", path_str])?;
         Ok(())
     }
 
@@ -168,33 +208,11 @@ impl WorktreeRepository for GitWorktreeAdapter {
     }
 }
 
-/// Simple filesystem adapter for lock files
-#[derive(Clone)]
-pub struct SimpleFilesystemAdapter;
-
-impl SimpleFilesystemAdapter {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl Default for SimpleFilesystemAdapter {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl BranchOperations for GitWorktreeAdapter {
     fn exists(&self, repo_path: &Path, branch: &BranchName) -> DomainResult<bool> {
-        let output = self.run_git(
-            repo_path,
-            &[
-                "rev-parse",
-                "--verify",
-                &format!("origin/{}", branch.as_str()),
-            ],
-        )?;
-        Ok(!output.trim().is_empty())
+        let local = format!("refs/heads/{}", branch.as_str());
+        let remote = format!("refs/remotes/origin/{}", branch.as_str());
+        Ok(self.ref_exists(repo_path, &local)? || self.ref_exists(repo_path, &remote)?)
     }
 
     fn create(

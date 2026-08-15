@@ -6,7 +6,6 @@ members = [
     "crates/phenovcs-observability",
     "crates/pheno-tracing",
     "crates/clap-ext",
-    "crates/harness-daemon",
     "ports",
 ]
 resolver = "2"
